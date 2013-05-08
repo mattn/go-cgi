@@ -89,6 +89,7 @@ func main() {
 	cmd.Stdin = os.Stdin
 	cmd.Stderr = os.Stderr
 	cmd.Stdout = os.Stdout
+	cmd.Args = os.Args[1:]
 	err = cmd.Run()
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err.Error())
