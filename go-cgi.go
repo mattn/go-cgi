@@ -11,11 +11,13 @@ import (
 )
 
 func main() {
+	tmp := filepath.Join(os.TempDir(), "go-cgi")
 	if len(os.Args) < 2 {
-		fmt.Fprintf(os.Stderr, "usage: %v /path/to/go-file\n", os.Args[0])
+		fmt.Fprintf(os.Stderr, "Usage: %v /path/to/go-file\n", os.Args[0])
+		fmt.Fprintf(os.Stderr, "  %q is working directory\n", tmp)
 		os.Exit(1)
 	}
-	tmp := filepath.Join(os.TempDir(), "go-cgi")
+
 	_, err := os.Lstat(tmp)
 	if err != nil {
 		if err = os.Mkdir(tmp, 0755); err != nil {
