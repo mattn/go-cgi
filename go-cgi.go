@@ -54,7 +54,7 @@ func main() {
 	}
 
 	_, err = os.Lstat(fname + ".go")
-	if !os.IsExist(err) {
+	if err != nil {
 		files, err := filepath.Glob(filepath.Join(dname, "*"))
 		if err != nil {
 			fmt.Fprintln(os.Stderr, err.Error())
