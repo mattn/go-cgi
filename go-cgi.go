@@ -83,18 +83,19 @@ func main() {
 	cmd := exec.Command("go", "build", "-o", fname, fname + ".go")
 	out, err := cmd.CombinedOutput()
 	if err != nil {
-		fmt.Fprintln(os.Stderr, err.Error())
+		fmt.Print("Status: 500\r\nContent-Type: text/plain; charset=utf-8\r\n\r\n")
+		fmt.Print(string(out))
 		os.Exit(1)
 	}
-	fmt.Fprintln(os.Stderr, string(out))
 	cmd = exec.Command(fname)
 	cmd.Stdin = os.Stdin
-	cmd.Stderr = os.Stderr
+	cmd.Stderr = os.Stdout
 	cmd.Stdout = os.Stdout
 	cmd.Args = os.Args[1:]
 	err = cmd.Run()
 	if err != nil {
-		fmt.Fprintln(os.Stderr, err.Error())
+		fmt.Print("Status: 500\r\nContent-Type: text/plain; charset=utf-8\r\n\r\n")
+		fmt.Print(err.Error())
 		os.Exit(1)
 	}
 }
