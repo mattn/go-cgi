@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 )
 
 func main() {
@@ -80,7 +81,11 @@ func main() {
 		io.Copy(outf, buff)
 	}
 
-	cmd := exec.Command("go", "build", "-o", fname, fname + ".go")
+	exename := fname
+	if runtime.GOOS == "windows" {
+		exename += ".exe"
+	}
+	cmd := exec.Command("go", "build", "-o", exename, fname + ".go")
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		fmt.Print("Status: 500\r\nContent-Type: text/plain; charset=utf-8\r\n\r\n")
@@ -90,7 +95,7 @@ func main() {
 	cmd = exec.Command(fname)
 	cmd.Stdin = os.Stdin
 	cmd.Stderr = os.Stdout
-	cmd.Stdout = os.Stdout
+	cmd.Stdout = os.Stderr
 	cmd.Args = os.Args[1:]
 	err = cmd.Run()
 	if err != nil {
