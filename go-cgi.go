@@ -6,25 +6,40 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"runtime"
 )
 
+func tryTmp(tmp string) (string, error) {
+	tmp = filepath.Join(tmp, "go-cgi")
+	fi, err := os.Lstat(tmp)
+	if err != nil {
+		if err = os.MkdirAll(tmp, 0755); err != nil {
+			return "", err
+		}
+	} else {
+		if fi.Mode().Perm() != 0755 {
+			return "", nil
+		}
+		err = os.Chmod(tmp, 0755)
+		if err != nil {
+			return "", nil
+		}
+	}
+	fmt.Print("Status: 500\r\nContent-Type: text/plain; charset=utf-8\r\n\r\n")
+	return tmp, nil
+}
+
 func main() {
-	tmp := filepath.Join(os.TempDir(), "go-cgi")
 	if len(os.Args) < 2 {
 		fmt.Fprintf(os.Stderr, "Usage: %v /path/to/go-file\n", os.Args[0])
-		fmt.Fprintf(os.Stderr, "  %q is working directory\n", tmp)
+		fmt.Fprintf(os.Stderr, "  %q is working directory\n", os.TempDir())
 		os.Exit(1)
 	}
 
-	_, err := os.Lstat(tmp)
+	tmp, err := tryTmp(os.TempDir())
 	if err != nil {
-		if err = os.Mkdir(tmp, 0755); err != nil {
-			fmt.Fprintln(os.Stderr, err.Error())
-			os.Exit(2)
-		}
+		tmp, _ = tryTmp(filepath.Dir(filepath.Join(os.Args[1], ".go-cgi")))
 	}
 
 	ha := md5.New()
@@ -85,18 +100,20 @@ func main() {
 	if runtime.GOOS == "windows" {
 		exename += ".exe"
 	}
-	cmd := exec.Command("go", "build", "-o", exename, fname + ".go")
+	cmd := command("go", "build", "-o", exename, fname + ".go")
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		fmt.Print("Status: 500\r\nContent-Type: text/plain; charset=utf-8\r\n\r\n")
 		fmt.Print(string(out))
+		for _, env := range os.Environ() {
+			fmt.Println(env)
+		}
 		os.Exit(1)
 	}
-	cmd = exec.Command(fname)
+	cmd = command(fname, os.Args[1:]...)
 	cmd.Stdin = os.Stdin
-	cmd.Stderr = os.Stdout
-	cmd.Stdout = os.Stderr
-	cmd.Args = os.Args[1:]
+	cmd.Stderr = os.Stderr
+	cmd.Stdout = os.Stdout
 	err = cmd.Run()
 	if err != nil {
 		fmt.Print("Status: 500\r\nContent-Type: text/plain; charset=utf-8\r\n\r\n")
