@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"crypto/md5"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -19,7 +20,7 @@ func tryTmp(tmp string) (string, error) {
 		}
 	} else {
 		if fi.Mode().Perm() != 0755 {
-			return "", nil
+			return "", errors.New("Shouldn't work")
 		}
 		err = os.Chmod(tmp, 0755)
 		if err != nil {
