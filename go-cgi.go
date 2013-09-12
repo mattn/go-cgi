@@ -11,6 +11,12 @@ import (
 	"time"
 )
 
+func error500(message string) {
+	fmt.Print("Status: 500\r\nContent-Type: text/plain; charset=utf-8\r\n\r\n")
+	fmt.Println(message)
+	os.Exit(1)
+}
+
 func tryTmp(tmp string) (string, error) {
 	fi, err := os.Lstat(tmp)
 	if err != nil {
@@ -26,7 +32,6 @@ func tryTmp(tmp string) (string, error) {
 			return "", nil
 		}
 	}
-	fmt.Print("Status: 500\r\nContent-Type: text/plain; charset=utf-8\r\n\r\n")
 	return tmp, nil
 }
 
@@ -71,20 +76,17 @@ func main() {
 	if err != nil {
 		files, err := filepath.Glob(filepath.Join(dname, "*"))
 		if err != nil {
-			fmt.Fprintln(os.Stderr, err.Error())
-			os.Exit(1)
+			error500(err.Error())
 		}
 		for _, file := range files {
 			err = os.Remove(file)
 			if err != nil {
-				fmt.Fprintln(os.Stderr, err.Error())
-				os.Exit(1)
+				error500(err.Error())
 			}
 		}
 		outf, err := os.Create(fname + ".go")
 		if err != nil {
-			fmt.Fprintln(os.Stderr, err.Error())
-			os.Exit(1)
+			error500(err.Error())
 		}
 		defer outf.Close()
 		buff := bufio.NewReader(f)
@@ -100,9 +102,7 @@ func main() {
 		cmd := command("go", "build", "-o", exename, fname+".go")
 		out, err := cmd.CombinedOutput()
 		if err != nil {
-			fmt.Print("Status: 500\r\nContent-Type: text/plain; charset=utf-8\r\n\r\n")
-			fmt.Print(string(out))
-			os.Exit(1)
+			error500(err.Error() + "\n" + string(out))
 		}
 	}
 
@@ -112,15 +112,11 @@ func main() {
 	cmd.Stdout = os.Stdout
 	timeout := time.AfterFunc(30 * time.Second, func() {
 		cmd.Process.Kill()
-		fmt.Print("Status: 500\r\nContent-Type: text/plain; charset=utf-8\r\n\r\n")
-		fmt.Print("Process was killed")
-		os.Exit(1)
+		error500("Process was forcely killed")
 	})
 	err = cmd.Run()
 	timeout.Stop()
 	if err != nil {
-		fmt.Print("Status: 500\r\nContent-Type: text/plain; charset=utf-8\r\n\r\n")
-		fmt.Print(err.Error())
-		os.Exit(1)
+		error500(err.Error())
 	}
 }
