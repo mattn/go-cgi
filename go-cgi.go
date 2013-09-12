@@ -3,7 +3,6 @@ package main
 import (
 	"bufio"
 	"crypto/md5"
-	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -12,7 +11,6 @@ import (
 )
 
 func tryTmp(tmp string) (string, error) {
-	tmp = filepath.Join(tmp, "go-cgi")
 	fi, err := os.Lstat(tmp)
 	if err != nil {
 		if err = os.MkdirAll(tmp, 0755); err != nil {
@@ -20,7 +18,7 @@ func tryTmp(tmp string) (string, error) {
 		}
 	} else {
 		if fi.Mode().Perm() != 0755 {
-			return "", errors.New("Shouldn't work")
+			return "", fmt.Errorf("Shouldn't work")
 		}
 		err = os.Chmod(tmp, 0755)
 		if err != nil {
@@ -38,9 +36,9 @@ func main() {
 		os.Exit(1)
 	}
 
-	tmp, err := tryTmp(os.TempDir())
+	tmp, err := tryTmp(filepath.Join(os.TempDir(), "go-cgi"))
 	if err != nil {
-		tmp, _ = tryTmp(filepath.Dir(filepath.Join(os.Args[1], ".go-cgi")))
+		tmp = filepath.Join(filepath.Dir(os.Args[1]), ".go-cgi")
 	}
 
 	ha := md5.New()
@@ -95,20 +93,21 @@ func main() {
 		if err != nil {
 		}
 		io.Copy(outf, buff)
+
+		exename := fname
+		if runtime.GOOS == "windows" {
+			exename += ".exe"
+		}
+		cmd := command("go", "build", "-o", exename, fname+".go")
+		out, err := cmd.CombinedOutput()
+		if err != nil {
+			fmt.Print("Status: 500\r\nContent-Type: text/plain; charset=utf-8\r\n\r\n")
+			fmt.Print(string(out))
+			os.Exit(1)
+		}
 	}
 
-	exename := fname
-	if runtime.GOOS == "windows" {
-		exename += ".exe"
-	}
-	cmd := command("go", "build", "-o", exename, fname+".go")
-	out, err := cmd.CombinedOutput()
-	if err != nil {
-		fmt.Print("Status: 500\r\nContent-Type: text/plain; charset=utf-8\r\n\r\n")
-		fmt.Print(string(out))
-		os.Exit(1)
-	}
-	cmd = command(fname, os.Args[1:]...)
+	cmd := command(fname, os.Args[1:]...)
 	cmd.Stdin = os.Stdin
 	cmd.Stderr = os.Stderr
 	cmd.Stdout = os.Stdout
