@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"time"
 )
 
 func tryTmp(tmp string) (string, error) {
@@ -41,16 +42,14 @@ func main() {
 		tmp = filepath.Join(filepath.Dir(os.Args[1]), ".go-cgi")
 	}
 
-	ha := md5.New()
-	ha.Write([]byte(os.Args[1]))
-	path_hex := fmt.Sprintf("%x", ha.Sum(nil))
+	path_hex := fmt.Sprintf("%x", md5.Sum([]byte(os.Args[1])))
 
 	f, err := os.Open(os.Args[1])
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err.Error())
 		os.Exit(1)
 	}
-	ha.Reset()
+	ha := md5.New()
 	io.Copy(ha, f)
 	f.Seek(0, os.SEEK_SET)
 	defer f.Close()
@@ -111,7 +110,14 @@ func main() {
 	cmd.Stdin = os.Stdin
 	cmd.Stderr = os.Stderr
 	cmd.Stdout = os.Stdout
+	timeout := time.AfterFunc(30 * time.Second, func() {
+		cmd.Process.Kill()
+		fmt.Print("Status: 500\r\nContent-Type: text/plain; charset=utf-8\r\n\r\n")
+		fmt.Print("Process was killed")
+		os.Exit(1)
+	})
 	err = cmd.Run()
+	timeout.Stop()
 	if err != nil {
 		fmt.Print("Status: 500\r\nContent-Type: text/plain; charset=utf-8\r\n\r\n")
 		fmt.Print(err.Error())
