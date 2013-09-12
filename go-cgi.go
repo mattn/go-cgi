@@ -101,7 +101,7 @@ func main() {
 	if runtime.GOOS == "windows" {
 		exename += ".exe"
 	}
-	cmd := command("go", "build", "-o", exename, fname + ".go")
+	cmd := command("go", "build", "-o", exename, fname+".go")
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		fmt.Print("Status: 500\r\nContent-Type: text/plain; charset=utf-8\r\n\r\n")
