@@ -38,7 +38,7 @@ func tryTmp(tmp string) (string, error) {
 func main() {
 	if len(os.Args) < 2 {
 		fmt.Fprintf(os.Stderr, "Usage: %v /path/to/go-file\n", os.Args[0])
-		fmt.Fprintf(os.Stderr, "  %q is working directory\n", os.TempDir())
+		fmt.Fprintf(os.Stderr, "  '%v' is working directory\n", os.TempDir())
 		os.Exit(1)
 	}
 
