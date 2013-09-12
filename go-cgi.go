@@ -105,9 +105,6 @@ func main() {
 	if err != nil {
 		fmt.Print("Status: 500\r\nContent-Type: text/plain; charset=utf-8\r\n\r\n")
 		fmt.Print(string(out))
-		for _, env := range os.Environ() {
-			fmt.Println(env)
-		}
 		os.Exit(1)
 	}
 	cmd = command(fname, os.Args[1:]...)
