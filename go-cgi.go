@@ -47,6 +47,12 @@ func main() {
 	tmp, err := tryTmp(filepath.Join(os.TempDir(), "go-cgi"))
 	if err != nil {
 		tmp = filepath.Join(filepath.Dir(os.Args[1]), ".go-cgi")
+		_, err := os.Lstat(tmp)
+		if err != nil {
+			if err = os.MkdirAll(tmp, 0755); err != nil {
+				error500(err.Error())
+			}
+		}
 	}
 
 	envfile := filepath.Join(tmp, "env")
@@ -110,8 +116,12 @@ func main() {
 		}
 		defer outf.Close()
 		buff := bufio.NewReader(f)
-		_, err = buff.ReadString('\n')
+		b, _, err := buff.ReadLine()
 		if err != nil {
+			error500(err.Error())
+		}
+		if len(b) > 0 && b[0] != '#' {
+			outf.Write(b)
 		}
 		io.Copy(outf, buff)
 	}
