@@ -5,9 +5,11 @@ import (
 	"crypto/md5"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"time"
 )
 
@@ -45,6 +47,24 @@ func main() {
 	tmp, err := tryTmp(filepath.Join(os.TempDir(), "go-cgi"))
 	if err != nil {
 		tmp = filepath.Join(filepath.Dir(os.Args[1]), ".go-cgi")
+	}
+
+	envfile := filepath.Join(tmp, "env")
+	fi, err := os.Lstat(envfile)
+	if err == nil && fi.Mode().IsRegular() {
+		b, err := ioutil.ReadFile(envfile)
+		if err == nil {
+			for _, line := range strings.Split(string(b), "\n") {
+				line = strings.TrimSpace(line)
+				if strings.HasPrefix(line, "#") {
+					continue
+				}
+				tokens := strings.SplitN(line, "=", 2)
+				if len(tokens) == 2 {
+					os.Setenv(tokens[0], tokens[1])
+				}
+			}
+		}
 	}
 
 	path_hex := fmt.Sprintf("%x", md5.Sum([]byte(os.Args[1])))
@@ -94,19 +114,19 @@ func main() {
 		if err != nil {
 		}
 		io.Copy(outf, buff)
-
-		exename := fname
-		if runtime.GOOS == "windows" {
-			exename += ".exe"
-		}
-		cmd := command("go", "build", "-o", exename, fname+".go")
-		out, err := cmd.CombinedOutput()
-		if err != nil {
-			error500(err.Error() + "\n" + string(out))
-		}
 	}
 
-	cmd := command(fname, os.Args[1:]...)
+	exename := fname
+	if runtime.GOOS == "windows" {
+		exename += ".exe"
+	}
+	cmd := command("go", "build", "-o", exename, fname+".go")
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		error500(err.Error() + "\n" + string(out))
+	}
+
+	cmd = command(fname, os.Args[1:]...)
 	cmd.Stdin = os.Stdin
 	cmd.Stderr = os.Stderr
 	cmd.Stdout = os.Stdout
